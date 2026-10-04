@@ -219,6 +219,40 @@ export default function Home() {
     setError(null);
   }
 
+  // useEffect(() => {
+  //   const savedId =
+  //     localStorage.getItem(
+  //       "nene-task-id"
+  //     );
+
+  //   setSavedTaskId(savedId);
+
+  //   if (!savedId) {
+  //     return;
+  //   }
+
+  //   fetch(`/api/tasks/${savedId}`)
+  //     .then((response) => {
+  //       if (!response.ok) {
+  //         throw new Error(
+  //           "Stored task not found"
+  //         );
+  //       }
+
+  //       return response.json();
+  //     })
+  //     .then((data) => {
+  //       setTask(data);
+  //     })
+  //     .catch(() => {
+  //       localStorage.removeItem(
+  //         "nene-task-id"
+  //       );
+
+  //       setSavedTaskId(null);
+  //     });
+  // }, []);
+
   useEffect(() => {
     const savedId =
       localStorage.getItem(
@@ -226,31 +260,6 @@ export default function Home() {
       );
 
     setSavedTaskId(savedId);
-
-    if (!savedId) {
-      return;
-    }
-
-    fetch(`/api/tasks/${savedId}`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(
-            "Stored task not found"
-          );
-        }
-
-        return response.json();
-      })
-      .then((data) => {
-        setTask(data);
-      })
-      .catch(() => {
-        localStorage.removeItem(
-          "nene-task-id"
-        );
-
-        setSavedTaskId(null);
-      });
   }, []);
 
   useEffect(() => {
