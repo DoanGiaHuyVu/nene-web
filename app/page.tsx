@@ -19,6 +19,12 @@ type Task = {
   prompt: string;
   status: string;
   progress: ProgressStage;
+
+  github?: {
+    branch: string;
+    url: string;
+    commit: string;
+  };
 };
 
 const stages: Array<{
