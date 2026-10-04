@@ -158,6 +158,14 @@ export default function Home() {
     setTask(data);
   }
 
+  function resetTask() {
+    localStorage.removeItem("nene-task-id");
+
+    setTask(null);
+    setPrompt("");
+    setError(null);
+  }
+
   useEffect(() => {
     const savedId =
       localStorage.getItem(
@@ -263,9 +271,18 @@ export default function Home() {
     return (
       <main className="min-h-screen bg-neutral-950 text-white px-6 py-12">
         <div className="mx-auto max-w-md">
-          <p className="text-sm text-neutral-500">
-            ne-ne
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-neutral-500">
+              ne-ne
+            </p>
+
+            <button
+              onClick={resetTask}
+              className="text-sm text-neutral-400 transition hover:text-white"
+            >
+              New task
+            </button>
+          </div>
 
           <h1 className="mt-4 text-3xl font-semibold">
             What do you want to build?
@@ -370,10 +387,22 @@ export default function Home() {
           </button>
         )}
 
-        {task.progress ===
-          "completed" && (
+        {task.progress === "completed" && (
           <div className="mt-10 rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
-            Completed ✓
+            <p className="text-lg font-medium">
+              Completed ✓
+            </p>
+
+            <p className="mt-2 text-sm text-neutral-400">
+              Your task finished successfully.
+            </p>
+
+            <button
+              onClick={resetTask}
+              className="mt-5 w-full rounded-xl bg-white px-4 py-3 font-medium text-black"
+            >
+              Start another task
+            </button>
           </div>
         )}
       </div>
