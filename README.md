@@ -20,6 +20,33 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Project conversations
+
+Home groups revisions into persistent projects. Each project keeps its original title,
+request/result history, approval and GitHub publication events, and deployment results.
+The composer remains visible throughout the project lifecycle; sending is enabled once
+published code is available and the current build/approval/deployment has finished.
+Failed updates can be retried against the latest successful published revision.
+
+Project history is stored in this browser's `localStorage` under `nene-projects-v1`.
+The previous `nene-task-id` is imported when available. Clearing browser storage removes
+this local history, and it does not sync between browsers or devices. The current API
+only returns individual tasks; shared history would require backend project/history storage.
+All existing task, approval, continuation, and deployment API routes remain unchanged.
+
+The last live branch, commit, and URL remain visible while updates are built or fail.
+An inherited deployment does not mark a new revision as deployed. The frontend uses
+the existing deployment endpoint for both Deploy and Deploy Update.
+
+View Changes shows the requested changes and build progress. It also renders `diff`
+when returned by the task API; the current API contract does not provide a diff endpoint.
+View Code links to GitHub after publication. Optional task `summary` and `error` strings
+are displayed in the conversation.
+
+Run project lifecycle regression checks with `npm test`, lint with `npm run lint`,
+and the production build with `npm run build`. In environments where Turbopack cannot
+open an internal worker port, use `npm run build -- --webpack`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
