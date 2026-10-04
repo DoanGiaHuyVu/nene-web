@@ -25,6 +25,20 @@ type Task = {
     url: string;
     commit: string;
   };
+
+    deployment?: {
+    provider: "render";
+    status:
+      | "creating"
+      | "building"
+      | "live"
+      | "failed";
+    serviceId?: string;
+    deployId?: string;
+    url?: string;
+    dashboardUrl?: string;
+    error?: string;
+  };
 };
 
 const stages: Array<{
@@ -70,6 +84,9 @@ export default function Home() {
     useState(
       "Build me a restaurant voting app"
     );
+
+  const [deploying, setDeploying] =
+    useState(false);
 
   const [savedTaskId, setSavedTaskId] =
     useState<string | null>(null);
@@ -170,6 +187,45 @@ export default function Home() {
     setTask(data);
   }
 
+  async function deployTask() {
+    if (!task) {
+      return;
+    }
+
+    setDeploying(true);
+    setError(null);
+
+    try {
+      const response =
+        await fetch(
+          `/api/tasks/${task.id}/deploy`,
+          {
+            method: "POST",
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ??
+            "Failed to start deployment"
+        );
+      }
+
+      setTask(data);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Deployment failed"
+      );
+    } finally {
+      setDeploying(false);
+    }
+  }
+
   function goHome() {
     setTask(null);
     setError(null);
@@ -261,6 +317,53 @@ export default function Home() {
 
     setSavedTaskId(savedId);
   }, []);
+
+  useEffect(() => {
+    if (!task) {
+      return;
+    }
+
+    const deploymentStatus =
+      task.deployment?.status;
+
+    if (
+      deploymentStatus !== "creating" &&
+      deploymentStatus !== "building"
+    ) {
+      return;
+    }
+
+    const interval =
+      window.setInterval(
+        async () => {
+          try {
+            const response =
+              await fetch(
+                `/api/tasks/${task.id}`
+              );
+
+            if (!response.ok) {
+              return;
+            }
+
+            const data =
+              await response.json();
+
+            setTask(data);
+          } catch {
+            // Try again on next poll.
+          }
+        },
+        3000
+      );
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [
+    task?.id,
+    task?.deployment?.status,
+  ]);
 
   useEffect(() => {
     if (!task?.id) {
@@ -499,12 +602,41 @@ export default function Home() {
                 </a>
               )}
 
-              <button
-                disabled
-                className="rounded-xl border border-neutral-700 px-4 py-3 font-medium text-neutral-500"
-              >
-                Deploy
-              </button>
+              {task.deployment?.status === "live" &&
+                task.deployment.url ? (
+                  <a
+                    href={task.deployment.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-xl bg-white px-4 py-3 text-center font-medium text-black"
+                  >
+                    Open App
+                  </a>
+                ) : (
+                  <button
+                    onClick={deployTask}
+                    disabled={
+                      deploying ||
+                      task.deployment?.status ===
+                        "creating" ||
+                      task.deployment?.status ===
+                        "building"
+                    }
+                    className="rounded-xl border border-neutral-700 px-4 py-3 font-medium text-white disabled:text-neutral-500"
+                  >
+                    {deploying ||
+                    task.deployment?.status ===
+                      "creating"
+                      ? "Starting deployment..."
+                      : task.deployment?.status ===
+                          "building"
+                        ? "Deploying..."
+                        : task.deployment?.status ===
+                            "failed"
+                          ? "Deployment failed"
+                          : "Deploy"}
+                  </button>
+                )}
             </div>
 
             <button
