@@ -19,6 +19,7 @@ type Task = {
   prompt: string;
   status: string;
   progress: ProgressStage;
+  updatedAt: string;
 
   github?: {
     branch: string;
@@ -26,7 +27,7 @@ type Task = {
     commit: string;
   };
 
-    deployment?: {
+  deployment?: {
     provider: "render";
     status:
       | "creating"
@@ -90,6 +91,9 @@ export default function Home() {
 
   const [savedTaskId, setSavedTaskId] =
     useState<string | null>(null);
+
+  const [recentTask, setRecentTask] =
+  useState<Task | null>(null);
 
   const [task, setTask] =
     useState<Task | null>(null);
@@ -270,6 +274,8 @@ export default function Home() {
   function resetTask() {
     localStorage.removeItem("nene-task-id");
 
+    setSavedTaskId(null);
+    setRecentTask(null);
     setTask(null);
     setPrompt("");
     setError(null);
@@ -316,6 +322,32 @@ export default function Home() {
       );
 
     setSavedTaskId(savedId);
+
+    if (!savedId) {
+      return;
+    }
+
+    fetch(`/api/tasks/${savedId}`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(
+            "Stored task not found"
+          );
+        }
+
+        return response.json();
+      })
+      .then((data) => {
+        setRecentTask(data);
+      })
+      .catch(() => {
+        localStorage.removeItem(
+          "nene-task-id"
+        );
+
+        setSavedTaskId(null);
+        setRecentTask(null);
+      });
   }, []);
 
   useEffect(() => {
@@ -466,7 +498,7 @@ export default function Home() {
             What do you want to build?
           </h1>
 
-          {savedTaskId && (
+          {/* {savedTaskId && (
             <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
               <p className="text-sm text-neutral-300">
                 You have a previous task.
@@ -478,6 +510,84 @@ export default function Home() {
               >
                 Resume current task
               </button>
+            </div>
+          )} */}
+          {recentTask && (
+            <div className="mt-8 rounded-3xl border border-neutral-800 bg-neutral-900 p-6">
+              <p className="text-sm text-neutral-500">
+                Recent work
+              </p>
+
+              <h2 className="mt-3 text-xl font-medium text-white">
+                {recentTask.prompt}
+              </h2>
+
+              <div className="mt-4 flex flex-wrap gap-2 text-sm">
+                <span className="rounded-full bg-neutral-800 px-3 py-1 text-neutral-300">
+                  {recentTask.status === "completed"
+                    ? "Built ✓"
+                    : recentTask.status}
+                </span>
+
+                {recentTask.github && (
+                  <span className="rounded-full bg-neutral-800 px-3 py-1 text-neutral-300">
+                    GitHub ✓
+                  </span>
+                )}
+
+                {recentTask.deployment?.status ===
+                  "live" && (
+                  <span className="rounded-full bg-neutral-800 px-3 py-1 text-neutral-300">
+                    Deployed ✓
+                  </span>
+                )}
+              </div>
+
+              <p className="mt-4 text-sm text-neutral-500">
+                Updated{" "}
+                {new Date(
+                  recentTask.updatedAt
+                ).toLocaleString()}
+              </p>
+
+              {recentTask.github?.branch && (
+                <p className="mt-1 text-sm text-neutral-500">
+                  {recentTask.github.branch}
+                </p>
+              )}
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <button
+                  onClick={resumeTask}
+                  className="rounded-xl bg-white px-4 py-3 font-medium text-black"
+                >
+                  Continue
+                </button>
+
+                {recentTask.deployment?.url ? (
+                  <a
+                    href={
+                      recentTask.deployment.url
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-xl border border-neutral-700 px-4 py-3 text-center font-medium text-white"
+                  >
+                    Open App
+                  </a>
+                ) : recentTask.github?.url ? (
+                  <a
+                    href={recentTask.github.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-xl border border-neutral-700 px-4 py-3 text-center font-medium text-white"
+                  >
+                    View Code
+                  </a>
+                ) : (
+                  <div />
+                )}
+              </div>
             </div>
           )}
 
