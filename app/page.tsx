@@ -86,6 +86,12 @@ export default function Home() {
       "Build me a restaurant voting app"
     );
 
+  const [followUpPrompt, setFollowUpPrompt] =
+    useState("");
+
+  const [continuing, setContinuing] =
+    useState(false);
+
   const [deploying, setDeploying] =
     useState(false);
 
@@ -227,6 +233,67 @@ export default function Home() {
       );
     } finally {
       setDeploying(false);
+    }
+  }
+
+  async function continueTask() {
+    if (!task) {
+      return;
+    }
+
+    const nextPrompt =
+      followUpPrompt.trim();
+
+    if (!nextPrompt) {
+      return;
+    }
+
+    setContinuing(true);
+    setError(null);
+
+    try {
+      const response =
+        await fetch(
+          `/api/tasks/${task.id}/continue`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              prompt: nextPrompt,
+            }),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ??
+            "Failed to continue project"
+        );
+      }
+
+      setTask(data);
+      setFollowUpPrompt("");
+
+      localStorage.setItem(
+        "nene-task-id",
+        data.id
+      );
+
+      setSavedTaskId(data.id);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not continue project"
+      );
+    } finally {
+      setContinuing(false);
     }
   }
 
@@ -749,11 +816,45 @@ export default function Home() {
                 )}
             </div>
 
+            <div className="mt-8 border-t border-neutral-800 pt-6">
+              <p className="text-base font-medium text-white">
+                What would you like to change?
+              </p>
+
+              <p className="mt-1 text-sm text-neutral-500">
+                Keep working on this project.
+              </p>
+
+              <textarea
+                value={followUpPrompt}
+                onChange={(event) =>
+                  setFollowUpPrompt(
+                    event.target.value
+                  )
+                }
+                placeholder="Ask ne-ne to change something..."
+                className="mt-4 min-h-32 w-full resize-none rounded-2xl border border-neutral-700 bg-neutral-950 p-4 text-white outline-none placeholder:text-neutral-600 focus:border-neutral-500"
+              />
+
+              <button
+                onClick={continueTask}
+                disabled={
+                  continuing ||
+                  !followUpPrompt.trim()
+                }
+                className="mt-3 w-full rounded-xl bg-white px-4 py-3 font-medium text-black disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {continuing
+                  ? "Working..."
+                  : "Send"}
+              </button>
+            </div>
+
             <button
               onClick={resetTask}
-              className="mt-4 w-full px-4 py-3 text-sm text-neutral-400"
+              className="mt-5 w-full px-4 py-3 text-sm text-neutral-500"
             >
-              Start another task
+              Start a new project
             </button>
           </div>
         )}
