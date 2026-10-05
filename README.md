@@ -38,10 +38,23 @@ The last live branch, commit, and URL remain visible while updates are built or 
 An inherited deployment does not mark a new revision as deployed. The frontend uses
 the existing deployment endpoint for both Deploy and Deploy Update.
 
-View Changes shows the requested changes and build progress. It also renders `diff`
-when returned by the task API; the current API contract does not provide a diff endpoint.
-View Code links to GitHub after publication. Optional task `summary` and `error` strings
-are displayed in the conversation.
+View Changes opens a review panel and lazily requests `/api/tasks/[id]/changes`.
+The server-side proxy forwards to the backend's authenticated `/tasks/:id/changes`
+using `NENE_BACKEND_URL` and `NENE_API_TOKEN`; the token is never exposed to the browser.
+Initial builds are labeled Initial build. Continuations compare against their recorded
+approved source, with expandable added/modified/deleted files and colored unified
+patches. Binary files, oversized patches, omitted files, and partial line counts are
+explicitly labeled. Source code renders as text, with horizontal scrolling.
+
+Loading, retry, and no-changes states are supported. Close, navigation, or a new run
+aborts the request and discards the loaded review; diff content is not stored in browser
+history. Approve uses the existing action and remains separate from review. Published
+builds retain View revision in the conversation. View Code links to GitHub after
+publication. Optional task `summary` and `error` strings remain in the conversation.
+
+Install and activate the backend endpoint before deploying this frontend update. No
+new environment variables or packages are required. If the backend still runs the old
+version, View Changes shows a retryable error; build/approval/deployment remain available.
 
 Run project lifecycle regression checks with `npm test`, lint with `npm run lint`,
 and the production build with `npm run build`. In environments where Turbopack cannot

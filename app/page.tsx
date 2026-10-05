@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ChangesPanel } from "./components/changes-panel";
 import {
   appendRun, building, completed, continuationBase, failed, isTask,
   newProject, projectStatus, readProjects, ready, stageKeys, stageLabels,
@@ -251,6 +252,7 @@ export default function Home() {
     operationEpoch.current += 1;
     setPending({ projectId, kind: "send" });
     setError(null);
+    setReviewRunId(null);
     changeProject(projectId, (current) => appendRun(current, nextRun));
     setDrafts((current) => ({ ...current, [projectId]: "" }));
     try {
@@ -271,6 +273,7 @@ export default function Home() {
     pendingRef.current = true;
     operationEpoch.current += 1;
     setPending({ projectId, kind: "send" });
+    setReviewRunId(null);
     changeProject(projectId, (current) => appendRun(current, nextRun));
     try {
       const task = await requestTask("/api/tasks", run.prompt);
@@ -387,12 +390,11 @@ export default function Home() {
                   <button onClick={() => setReviewRunId(reviewRunId === run.id ? null : run.id)} className={secondary} aria-expanded={reviewRunId === run.id}>View Changes</button>
                   <button onClick={() => void runAction("approve")} disabled={busy} className={primary}>{busy && pending?.kind === "approve" ? "Approving..." : "Approve"}</button>
                 </div>}
-                {reviewRunId === run.id && <div className="mt-4 rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-                  <h3 className="text-sm font-medium">{run.isUpdate ? "Requested changes" : "Project request"}</h3>
-                  <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-400">{run.prompt}</p>
-                  {run.task?.diff ? <pre className="mt-4 overflow-x-auto whitespace-pre text-xs text-neutral-300">{run.task.diff}</pre> : <p className="mt-3 text-xs leading-5 text-neutral-500">This build response doesn’t include a code diff. View Code will be available after approval and GitHub publication.</p>}
-                </div>}
+                {reviewRunId === run.id && run.task && <ChangesPanel key={run.task.id} taskId={run.task.id} isUpdate={run.isUpdate}
+                  onClose={() => setReviewRunId(null)} onApprove={isReady && latest ? () => void runAction("approve") : undefined}
+                  approving={busy && pending?.kind === "approve"} disabled={!!pending} /> }
                 {completed(run.task) && run.task?.github && <div className="mt-5 flex flex-wrap gap-2">
+                  <button onClick={() => setReviewRunId(reviewRunId === run.id ? null : run.id)} className={secondary} aria-expanded={reviewRunId === run.id}>View revision</button>
                   <ExternalLink href={run.task.github.url}>View Code</ExternalLink>
                   {latest && !currentIsLive && <button onClick={() => void runAction("deploy")} disabled={busy || deploying} className={primary}>{deploying ? "Deploying..." : live ? "Deploy Update" : "Deploy"}</button>}
                   {latest && live && <ExternalLink href={live.url}>Open App</ExternalLink>}
