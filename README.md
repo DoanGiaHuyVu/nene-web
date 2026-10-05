@@ -74,3 +74,11 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Sentry error monitoring
+
+The frontend uses `@sentry/nextjs` 11 via Next's instrumentation hooks. Configure `SENTRY_DSN` (server) and `NEXT_PUBLIC_SENTRY_DSN` (browser) in private `.env.local` and in the frontend hosting environment, using `.env.example` as the field list. The browser DSN is a public ingestion address; API authentication tokens must remain server-only. Runtime telemetry does not require a Sentry API auth token.
+
+Browser exceptions, rendering errors, server request errors, and unexpected API failures are captured. Prompts, generated code, request data, user information, console breadcrumbs, and source context are removed. Expected 4xx responses and cancelled requests are excluded; repeated API failures are capped at five per route category per 15 minutes.
+
+Frontend performance tracing, session replay and source-map uploads are disabled for this bootstrap. Backend agent traces are documented in the backend repository's `docs/SENTRY-AGENT-TRACING.md`. Redeploy the frontend after setting its Sentry environment variables; `NEXT_PUBLIC_` values are embedded during the build.

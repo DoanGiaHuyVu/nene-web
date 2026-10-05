@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { monitoredFetch, reportApiFailure } from "./lib/observability";
 import { ChangesPanel } from "./components/changes-panel";
 import {
   appendRun, building, completed, continuationBase, failed, isTask,
@@ -13,14 +14,17 @@ const primary = "rounded-xl bg-white px-4 py-3 text-sm font-medium text-black tr
 const secondary = "rounded-xl border border-neutral-700 px-4 py-3 text-center text-sm font-medium text-neutral-200 transition hover:border-neutral-500 hover:text-white disabled:opacity-40";
 
 async function requestTask(path: string, prompt?: string): Promise<Task> {
-  const response = await fetch(path, {
+  const response = await monitoredFetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     ...(prompt === undefined ? {} : { body: JSON.stringify({ prompt }) }),
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "The request failed. Please try again.");
-  if (!isTask(data)) throw new Error("The project response was incomplete. Please reopen the project to check its status.");
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(typeof data?.error === "string" ? data.error : "The request failed. Please try again.");
+  if (!isTask(data)) {
+    reportApiFailure(path, response.status);
+    throw new Error("The project response was incomplete. Please reopen the project to check its status.");
+  }
   return data;
 }
 
@@ -93,7 +97,7 @@ export default function Home() {
       }
       if (legacyId && !stored.some((project) => project.runs.some((run) => run.task?.id === legacyId))) {
         try {
-          const response = await fetch(`/api/tasks/${encodeURIComponent(legacyId)}`);
+          const response = await monitoredFetch(`/api/tasks/${encodeURIComponent(legacyId)}`);
           const data = await response.json();
           if (response.ok && isTask(data)) stored.push(newProject(data));
         } catch {
@@ -110,7 +114,7 @@ export default function Home() {
         const run = project.runs.at(-1);
         if (!run?.task) return;
         const epoch = operationEpoch.current;
-        const response = await fetch(`/api/tasks/${encodeURIComponent(run.task.id)}`);
+        const response = await monitoredFetch(`/api/tasks/${encodeURIComponent(run.task.id)}`);
         const data = await response.json();
         if (!cancelled && epoch === operationEpoch.current && response.ok && isTask(data)) changeProject(project.id, (current) => updateRun(current, run.id, { task: data }));
       }));
@@ -149,7 +153,7 @@ export default function Home() {
         if (!building(run) && !ready(run.task) && !deploymentPending && !(completed(run.task) && !run.task.github)) continue;
         inFlight.add(run.id);
         const epoch = operationEpoch.current;
-        void fetch(`/api/tasks/${encodeURIComponent(run.task.id)}`)
+        void monitoredFetch(`/api/tasks/${encodeURIComponent(run.task.id)}`)
           .then(async (response) => {
             const data = await response.json();
             if (!stopped && epoch === operationEpoch.current && response.ok && isTask(data)) {
@@ -173,7 +177,7 @@ export default function Home() {
       fetching = true;
       const epoch = operationEpoch.current;
       try {
-        const response = await fetch(`/api/tasks/${encodeURIComponent(taskId!)}`);
+        const response = await monitoredFetch(`/api/tasks/${encodeURIComponent(taskId!)}`);
         const data = await response.json();
         if (!cancelled && epoch === operationEpoch.current && response.ok && isTask(data)) {
           changeProject(activeId!, (current) => updateRun(current, runId!, { task: data }));
